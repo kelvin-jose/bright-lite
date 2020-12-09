@@ -1,1 +1,1 @@
-BrightLight - Brighter and Lite than Torch
+BrightLite - Brighter and Lite than Torch
