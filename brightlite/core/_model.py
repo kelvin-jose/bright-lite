@@ -5,6 +5,7 @@ from tqdm import tqdm
 from ..decorators import *
 from abc import abstractmethod
 from ..constants import Training
+from ..constants import ErrorMsgs
 from ..logger.logger import LogModule
 from ..utils.metrics import AverageMeter
 
@@ -16,6 +17,8 @@ class On(nn.Module, ABC):
         self.loss_function = None
         self.optimizer = None
         self.lr_scheduler = None
+        self.device = torch.device(Training.Defaults.GPU if torch.cuda.is_available() else Training.Defaults.DEVICE)
+        self._train_avg_meter = None
         self._train_state = Training.Defaults.TRAIN_STATE
         self._test_state = Training.Defaults.TEST_STATE
 
@@ -48,14 +51,32 @@ class On(nn.Module, ABC):
     def train_one_step(self, batch):
         return
 
+    @decors.record_loss
+    def train_one_epoch(self, epoch, loader):
+        self._train_avg_meter.reset()
+        for batch in loader:
+
+            if isinstance(batch, list):
+                for index, each in enumerate(batch):
+                    batch[index] = batch[index].to(self.device)
+            elif isinstance(batch, dict):
+                for key, value in batch.items():
+                    batch[key] = batch[value].to(self.device)
+
+            loss = self.train_one_step(batch)
+            self._train_avg_meter.update(loss.cpu().detach().numpy())
+        return self._train_avg_meter.avg
+
     def valid_one_step(self):
         ...
 
     def fit(self,
             train_loader,
             test_loader=None,
-            epochs=Training.Defaults.EPOCHS,
-            device=Training.Defaults.DEVICE):
+            epochs=Training.Defaults.EPOCHS):
+
+        assert epochs > 0, ErrorMsgs.Training.EPOCHS_FAIL
+        assert train_loader is not None, ErrorMsgs.Training.TRAIN_LOADER_NONE
 
         # record system usage
         # display model arx
@@ -64,14 +85,17 @@ class On(nn.Module, ABC):
         # log initial hyper params
 
         self.train()
-        self.to(device=device)
-        train_avg_meter = AverageMeter()
+        self.to(device=self.device)
+        self._train_avg_meter = AverageMeter()
         self.loss_function = self.configure_loss()
         self.optimizer, self.lr_scheduler = self.configure_optimizers()
         for _ in tqdm(range(epochs)):
-            batch: object
-            for batch in train_loader:
-                loss = self.train_one_step(batch)
+            loss = self.train_one_epoch(_, train_loader)
+            print(loss)
+            # batch: object
+            # for batch in train_loader:
+            #     print(type(batch))
+            #     loss = self.train_one_step(batch)
 
         # print(logits.argmax(dim=1), y)
 

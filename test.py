@@ -56,7 +56,5 @@ class MyMNISTModel(brightlite.On):
 
 
 model = MyMNISTModel()
-model.train_state = 1
-model.test_state = 1
 model.fit(train_loader, epochs=10)
 model.predict(test_loader)
