@@ -20,6 +20,6 @@ class decors(LogModule):
         @functools.wraps(function)
         def wrapper_record_loss(*args, **kwargs):
             loss = function(*args, **kwargs)
-            LogModule.logger.info(f"{function.__name__ } loss : {loss}")
+            LogModule.logger.info(f"{function.__name__} epoch : {args[-2]} loss : {loss}")
             return loss
         return wrapper_record_loss
