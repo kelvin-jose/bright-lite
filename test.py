@@ -31,9 +31,14 @@ class MyMNISTModel(brightlite.On):
     def forward(self, x):
         return self.linear(x)
 
+
+class LowBeam(brightlite.Beam):
+    def __init__(self, _model):
+        super().__init__(_model)
+
     def train_one_step(self, batch):
         X, y = batch
-        logits = self(x=X.view(8, 784))
+        logits = self.model(x=X.view(8, 784))
         loss = self.loss_function(logits, y)
         self.optimizer.zero_grad()
         loss.backward()
@@ -41,7 +46,7 @@ class MyMNISTModel(brightlite.On):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
         lr_scheduler = None
         return optimizer, lr_scheduler
 
@@ -51,10 +56,11 @@ class MyMNISTModel(brightlite.On):
     def predict(self, test_loader):
         for b in test_loader:
             X, y = b
-            y_pred = self(x=X.view(8, 784))
+            y_pred = self.model(x=X.view(8, 784))
             print(y, torch.argmax(y_pred, dim=1))
 
 
 model = MyMNISTModel()
-model.fit(train_loader, epochs=10)
-model.predict(test_loader)
+beam = LowBeam(model)
+beam.fit(train_loader, test_loader, epochs=5, multiple_gpus=True)
+beam.predict(test_loader)
