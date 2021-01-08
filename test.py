@@ -3,6 +3,8 @@ import brightlite
 import torchvision
 import torch.nn as nn
 
+from sklearn.metrics import accuracy_score
+
 
 train_loader = torch.utils.data.DataLoader(
     torchvision.datasets.MNIST('./datasets/', train=True, download=True,
@@ -39,7 +41,7 @@ class LowBeam(brightlite.Beam):
     def train_one_step(self, batch):
         X, y = batch
         logits = self.model(x=X.view(8, 784))
-        loss = self.loss_function(logits, y)
+        loss = torch.nn.CrossEntropyLoss()(logits, y)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimization_step()
@@ -49,18 +51,23 @@ class LowBeam(brightlite.Beam):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
         lr_scheduler = None
         return optimizer, lr_scheduler
+    
+    def validate_one_step(self, batch):
+        X, y = batch
+        y_pred = self.model(x=X.view(8, 784))
+        # calculate metric
+        loss = torch.nn.CrossEntropyLoss()(y_pred, y)
+        acc = accuracy_score(y.cpu().detach().numpy(), torch.argmax(y_pred, dim=1).cpu().detach().numpy())
+        metrics = {"accuracy": acc}
+        return loss.cpu().detach().numpy(), metrics
 
-    def configure_loss(self):
-        return torch.nn.CrossEntropyLoss()
-
-    def predict(self, test_loader):
-        for b in test_loader:
-            X, y = b
-            y_pred = self.model(x=X.view(8, 784))
-            print(y, torch.argmax(y_pred, dim=1))
+    def predict_one_step(self, batch):
+        X, y = batch
+        y_pred = self.model(x=X.view(8, 784))
+        # print(y.cpu().detach().numpy(), torch.argmax(y_pred, dim=1).cpu().detach().numpy())
 
 
 model = MyMNISTModel()
 beam = LowBeam(model)
-beam.fit(train_loader, test_loader, epochs=5, multiple_gpus=True)
+beam.fit(train_loader, test_loader, epochs=1, multiple_gpus=True)
 beam.predict(test_loader)
