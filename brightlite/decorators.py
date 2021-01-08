@@ -11,7 +11,7 @@ class decors(LogModule):
     def state_change(function):
         @functools.wraps(function)
         def wrapper_state_change(*args, **kwargs):
-            LogModule.logger.info(function.__name__)
+            LogModule.logger.info(f"{function.__name__} : {args[-1]}")
             return function(*args, **kwargs)
         return wrapper_state_change
 
@@ -23,3 +23,12 @@ class decors(LogModule):
             LogModule.logger.info(f"{function.__name__} epoch : {args[-2]} loss : {loss}")
             return loss
         return wrapper_record_loss
+    
+    @staticmethod
+    def record_metrics(function):
+        @functools.wraps(function)
+        def wrapper_record_metrics(*args, **kwargs):
+            loss, metrics = function(*args, **kwargs)
+            LogModule.logger.info(f"{function.__name__} loss : {loss}  metrics : {metrics}")
+            return loss, metrics
+        return wrapper_record_metrics
