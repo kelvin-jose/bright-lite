@@ -1,4 +1,4 @@
-BrightLite - Brighter and Lite than Torch
+# BrightLite - Brighter and Lite than Torch
 
 Bright-Lite is an early stage dev version a Deep Learning Framework based on PyTorch. I  started this as a personal project speed up the dev process so that I can invest more time on something else.
 
